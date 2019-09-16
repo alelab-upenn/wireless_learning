@@ -83,6 +83,26 @@ class ProbabilityAction(object):
         """
         raise Exception("Not Implemented")
 
+    def get_mean_action(self, params):
+        """
+
+        Args:
+            params (TYPE): N by (A*P) Numpy array
+
+        Returns: N by A Numpy array of sampled actions
+        """
+        raise Exception("Not Implemented")
+
+    def random_action(self, N):
+        """
+
+        Args:
+            params (TYPE): N by (A*P) Numpy array
+
+        Returns: N by A Numpy array of sampled actions
+        """
+        raise Exception("Not Implemented")
+
 #####################################################
 ########## Bernoulli  ###############################
 ######################################################
@@ -112,7 +132,7 @@ class BernoulliDistribution(ProbabilityAction):
         action = np.random.binomial(1,0.3,size=(N,self.action_dim))*self.upper_bound
         return action
 
-    def get_action2(self, params):
+    def get_mean_action(self, params):
         action = (params>= 0.5).astype(float) * self.upper_bound
         return action
 
@@ -144,7 +164,7 @@ class GaussianDistribution(ProbabilityAction):
         action = scipy.stats.norm.rvs(loc=mean, scale=std)
         return action
 
-    def get_action2(self, params):
+    def get_mean_action(self, params):
         mean = params[:, :self.action_dim]
         std = params[:, self.action_dim:]
 
@@ -192,7 +212,7 @@ class BetaDistribution(ProbabilityAction):
 
         return action
 
-    def get_action2(self, params):
+    def get_mean_action(self, params):
         alpha = params[:, :self.action_dim]
         beta = params[:, self.action_dim:]
 
@@ -202,6 +222,9 @@ class BetaDistribution(ProbabilityAction):
         upper_bound = np.vstack([self.upper_bound for _ in range(N)]) - 1e-6
 
         action = alpha / (alpha+ beta) *(upper_bound - lower_bound) + lower_bound
+
+    def random_action(self, N):
+        action = np.random.uniform(low=self.lower_bound, high=self.upper_bound,size=(N,self.action_dim))
 
         return action
 
@@ -245,18 +268,22 @@ class TruncatedGaussianDistribution(ProbabilityAction):
 
         return action
 
-    def get_action2(self, params):
+    def get_mean_action(self, params):
         mean = params[:, :self.action_dim]
         std = params[:, self.action_dim:]
 
-        N = params.shape[0]
         action = mean
+
+        return action
+
+    def random_action(self, N):
+        action = np.random.uniform(low=self.lower_bound, high=self.upper_bound,size=(N,self.action_dim))
 
         return action
 
 
 #####################################################
-########## Beta/Bernoulli  ###############################
+########## Beta + Bernoulli  ###############################
 ######################################################
 class BetaBernoulliDistribution(ProbabilityAction):
     def __init__(self, action_dim, lower_bound, upper_bound):
@@ -302,26 +329,35 @@ class BetaBernoulliDistribution(ProbabilityAction):
 
         return action
 
-    def get_action2(self, params):
+    def get_mean_action(self, params):
         pt1 = int(self.action_dim)
         pt2 = int(3/2*self.action_dim)
 
         beta_p = params[:,:pt1]
         bernoulli_p = params[:,pt1:pt2]
 
-        action1 = self.beta.get_action2(beta_p)
-        action2 = self.bernoulli.get_action2(bernoulli_p)
+        action1 = self.beta.get_mean_action(beta_p)
+        action2 = self.bernoulli.get_mean_action(bernoulli_p)
+
+        action = np.concatenate([action1, action2], axis=1)
+
+        return action
+
+    def random_action(self, N):
+
+        action1 = self.beta.random_action(N)
+        action2 = self.bernoulli.random_action(N)
 
         action = np.concatenate([action1, action2], axis=1)
 
         return action
 
 #####################################################
-########## Gaussian/Bernoulli  ###############################
+########## Truncated Gaussian + Bernoulli  ###############################
 ######################################################
-class GaussianBernoulliDistribution(ProbabilityAction):
+class TGaussianBernoulliDistribution(ProbabilityAction):
     def __init__(self, action_dim, lower_bound, upper_bound):
-        super(GaussianBernoulliDistribution,self).__init__(3/2, action_dim)
+        super(TGaussianBernoulliDistribution,self).__init__(3/2, action_dim)
         self.gaussian = TruncatedGaussianDistribution(int(action_dim/2), lower_bound,upper_bound)
         self.bernoulli = BernoulliDistribution(int(action_dim/2), 1.0)
 
@@ -363,15 +399,24 @@ class GaussianBernoulliDistribution(ProbabilityAction):
 
         return action
 
-    def get_action2(self, params):
+    def get_mean_action(self, params):
         pt1 = int(self.action_dim)
         pt2 = int(3/2*self.action_dim)
 
         gaussian_p = params[:,:pt1]
         bernoulli_p = params[:,pt1:pt2]
 
-        action1 = self.gaussian.get_action2(gaussian_p)
-        action2 = self.bernoulli.get_action2(bernoulli_p)
+        action1 = self.gaussian.get_mean_action(gaussian_p)
+        action2 = self.bernoulli.get_mean_action(bernoulli_p)
+
+        action = np.concatenate([action1, action2], axis=1)
+
+        return action
+
+    def random_action(self, N):
+
+        action1 = self.beta.random_action(N)
+        action2 = self.bernoulli.random_action(N)
 
         action = np.concatenate([action1, action2], axis=1)
 

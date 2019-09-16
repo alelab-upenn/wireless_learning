@@ -206,28 +206,33 @@ class ReinforcePolicy(object):
 
         return action
 
-    def get_action2(self, inputs, S, training=False):
+    def get_mean_action(self, inputs, S, training=False):
         Sn = self.normalize_gso(S)
         c_inputs = self.normalize_inputs(inputs)
         fd = {self.state_input: c_inputs, self.graph_input: Sn, self.is_train: training}
 
         params = self.sess.run(self.params, feed_dict=fd)
-        action = self.dist.get_action2(params)
+        action = self.dist.get_mean_action(params)
 
         return action
 
-    def learn(self, inputs, actions, f0, f1, S):
+    def random_action(self, inputs, S):
+        action = self.dist.random_action(self.batch_size)
+
+        return action
+
+    def learn(self, inputs, actions, reward, constraint, S):
         """
         Args:
             inputs (TYPE): N by m
             actions (TYPE): N by m
-            f0 (TYPE): N by 1
-            f1 (TYPE): N by p
+            reward (TYPE): N by 1
+            constraint (TYPE): N by p
 
         Returns:
             TYPE: Description
         """
-        cost = f0 + np.dot(f1, self.lambd)/self.constraint_dim
+        cost = reward + np.dot(constraint, self.lambd)/self.constraint_dim
         cost = np.reshape(cost, (-1))
 
         self.stats.push_list(cost)
@@ -248,7 +253,7 @@ class ReinforcePolicy(object):
             pdb.set_trace()
 
         # gradient ascent step on lambda
-        delta_lambd = np.mean(f1, axis=0) - self.slack[:,0]
+        delta_lambd = np.mean(constraint, axis=0) - self.slack[:,0]
         delta_lambd = np.reshape(delta_lambd, (-1, 1))
         old_lambd = np.copy(self.lambd)
         self.lambd += delta_lambd * self.lambd_lr
