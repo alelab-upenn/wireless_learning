@@ -116,67 +116,6 @@ def save_data(data, filename):
 ####################
 ## TEST FUNCTIONS ##
 ####################
-def fairness_test():
-    mu = 1 # parameter for exponential distribution of wireless channel distribution
-    num_channels = 40 # number of wireless channels (action_dim and state_dim)
-    pmax = num_channels # maximum power allocation
-    cap_min = 0.5
-    channel_var = 0.5
-
-    lambda_lr = 0.0001
-    theta_lr = 3e-4
-
-    all_drops = False
-    drop_number = 0
-
-
-    batch_size = 100
-
-    CQI = 0
-
-    if num_channels==6:
-        CQI = scipy.io.loadmat('../../../CQI/6x6_CQI_data_2_7_2019.mat')['CQI']
-        CQI_lt = scipy.io.loadmat('../../../CQI/6x6_CQI_data_2_7_2019.mat')['long_term_CQI']
-    elif num_channels==8:
-        CQI = scipy.io.loadmat('../../../CQI/8x8_CQI_data.mat')['CQI']
-    elif num_channels==10:
-        CQI = scipy.io.loadmat('../../../CQI/10x10_CQI_data.mat')['CQI']
-    elif num_channels==20:
-        CQI = scipy.io.loadmat('../../../CQI/20x20_CQI_data.mat')['CQI']
-    elif num_channels==30:
-        CQI = scipy.io.loadmat('../../../CQI/30x30_CQI_data.mat')['CQI']
-    elif num_channels==40:
-        CQI = scipy.io.loadmat('../../../CQI/40x40_CQI_data.mat')['CQI']
-        CSI_lt = scipy.io.loadmat('../../../CQI/40x40_CQI_data.mat')['long_term_CSI']
-    elif num_channels==50:
-        CQI = scipy.io.loadmat('../../../CQI/50x50_CQI_data.mat')['CQI']
-    else:
-        raise Exception("No channel data available for this configuration")
-
-
-    GSO = 'Adjacency'
-    A = CSI_lt[:,:,drop_number]
-
-    A = np.eye(num_channels)
-
-    #distribution = TruncatedGaussianDistribution(sys.action_dim, 
-    #    lower_bound=np.ones(sys.action_dim)*0.0, 
-    #    upper_bound=np.ones(sys.action_dim)*4.0)
-    
-
-    sys = SumCapacity_Fair(num_channels, cap_min=cap_min, A=A, sigma=1, all_drops=all_drops, CQI=CQI, drop = drop_number)
-    distribution = BernoulliDistribution(sys.action_dim, upper_bound=1.0)
-    lambda_lr = 0.01
-    theta_lr = 8e-4
-    reinforce_policy = ReinforcePolicy(sys,
-        model_builder=regnn_model,
-        distribution=distribution, lambda_lr = lambda_lr, theta_lr = theta_lr, cf = True, batch_size = batch_size)
-
-    history_dict = run_sys(sys, reinforce_policy, 70000, batch_size=batch_size, save_file="fairness_gnn2.mat")
-
-    save_data(history_dict, "wireless_net_fairness_data2.mat")
-
-
 def interference_test():
     mu = 2 # parameter for exponential distribution of wireless channel distribution
     num_channels = 10 # number of wireless channels (action_dim and state_dim)
