@@ -6,7 +6,7 @@ import scipy.stats
 import graphtools as gt
 #import datatools as dt
 import pdb
-from architecture import cnngs
+from gnn_architecture import cnngs
 from policy_distributions import *
 from scipy import sparse
 
@@ -14,7 +14,7 @@ from scipy import sparse
 #######################################################
 ### Fully connected NN (multi-layer perceptron) model##
 #######################################################
-def mlp_model(state_dim, action_dim, batch_size=64, num_param=1, layers=[64, 32]):
+def mlp_model(state_dim, action_dim, batch_size=64, num_param=1, layers=[64, 32], archit='none'):
     with tf.variable_scope('policy'):
         state_input = tf.placeholder(tf.float32, [batch_size, state_dim], name='state_input')
         graph_input = tf.placeholder(tf.float32, [batch_size, state_dim, state_dim], name='graph_input')
@@ -39,13 +39,12 @@ def mlp_model(state_dim, action_dim, batch_size=64, num_param=1, layers=[64, 32]
 #######################################################
 ### Random edge graph neural network (GNN) model##
 #######################################################
-def regnn_model(state_dim, action_dim, batch_size = 64, num_param=1, layers=[4]*10):
+def regnn_model(state_dim, action_dim, batch_size = 64, num_param=1, layers=[4]*10, archit = 'no_pooling'):
 
     L = len(layers)
 
     A = np.eye(state_dim)
     GSO = 'Adjacency'
-    archit = 'no_pooling'
 
     if archit == "aggregation":
         A = [A, [4]]
@@ -130,6 +129,7 @@ class ReinforcePolicy(object):
         slack_lr = 0.005,
         theta_lr = 5e-4,
         batch_size = 64,
+        archit='no_pooling',
         cf = False):
 
         self.state_dim = sys.state_dim
@@ -139,6 +139,8 @@ class ReinforcePolicy(object):
         self.slack = np.ones((sys.constraint_dim,1))
 
         self.is_train = True
+
+        self.archit = archit
 
         self.model_builder = model_builder
         self.dist = distribution
@@ -162,7 +164,7 @@ class ReinforcePolicy(object):
 
     def _build_model(self, state_dim, action_dim, model_builder, distribution):
 
-        self.state_input, self.graph_input, self.is_train, self.output = model_builder(state_dim, action_dim, num_param = self.dist.num_param, batch_size = self.batch_size)
+        self.state_input, self.graph_input, self.is_train, self.output = model_builder(state_dim, action_dim, num_param = self.dist.num_param, batch_size = self.batch_size, archit = self.archit)
 
         tvars = tf.trainable_variables()
         self.g_vars = [var for var in tvars if 'policy/' in var.name]
