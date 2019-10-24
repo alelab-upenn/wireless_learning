@@ -136,7 +136,7 @@ class ReinforcePolicy(object):
         self.action_dim = sys.action_dim
         self.constraint_dim = sys.constraint_dim
         self.lambd = 1*np.ones((sys.constraint_dim, 1))
-        self.slack = np.ones((sys.constraint_dim,1))
+        self.slack = np.zeros((sys.constraint_dim,1))
 
         self.is_train = True
 
