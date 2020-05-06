@@ -6,7 +6,7 @@ import scipy.stats
 import graphtools as gt
 #import datatools as dt
 import pdb
-from gnn_architecture import cnngs
+from architecture import cnngs
 from policy_distributions import *
 from scipy import sparse
 
